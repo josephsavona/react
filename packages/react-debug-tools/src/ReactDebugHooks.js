@@ -106,6 +106,10 @@ function nextHook(): null | Hook {
   return hook;
 }
 
+function getCacheSignal() {
+  invariant(false, 'Not implemented.');
+}
+
 function getCacheForType<T>(resourceType: () => T): T {
   invariant(false, 'Not implemented.');
 }
@@ -343,6 +347,7 @@ function useOpaqueIdentifier(): OpaqueIDType | void {
 }
 
 const Dispatcher: DispatcherType = {
+  getCacheSignal,
   getCacheForType,
   readContext,
   useCacheRefresh,
