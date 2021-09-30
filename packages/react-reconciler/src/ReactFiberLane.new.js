@@ -24,6 +24,7 @@ import {
 } from 'shared/ReactFeatureFlags';
 import {isDevToolsPresent} from './ReactFiberDevToolsHook.new';
 import {ConcurrentUpdatesByDefaultMode, NoMode} from './ReactTypeOfMode';
+import {releaseCache} from './ReactFiberCacheComponent.new';
 
 // Lane values below should be kept in sync with getLabelForLane(), used by react-devtools-scheduling-profiler.
 // If those values are changed that package should be rebuilt and redeployed.
@@ -640,6 +641,10 @@ export function markRootFinished(root: FiberRoot, remainingLanes: Lanes) {
     if (pooledCacheLanes === NoLanes) {
       // None of the remaining work relies on the cache pool. Clear it so
       // subsequent requests get a new cache.
+      const pooledCache = root.pooledCache;
+      if (pooledCache !== null) {
+        releaseCache(pooledCache);
+      }
       root.pooledCache = null;
     }
   }
