@@ -1,5 +1,7 @@
 # Plan: `react_compiler_oxc` — OXC Frontend for React Compiler
 
+**Current status:** Phase 1 (Foundation) and Phase 2 (Lint path) complete. Phase 3 (Transform/reverse converter) not started. All modules compile with 0 errors. Full pipeline wired up: OXC AST → react_compiler_ast → compile_program → diagnostics.
+
 ## Context
 
 The Rust React Compiler (`compiler/crates/`) currently accepts Babel-format AST (`react_compiler_ast::File`) + scope info (`ScopeInfo`) and compiles via `compile_program()`. The only frontend is a Babel NAPI bridge (`compiler/packages/babel-plugin-react-compiler-rust/`). This plan adds an OXC frontend that enables both **build-time code transformation** and **linting** via the OXC ecosystem, all in pure Rust (no JS/NAPI boundary).

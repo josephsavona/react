@@ -1,9 +1,7 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
+// Copyright (c) Meta Platforms, Inc. and affiliates.
+//
+// This source code is licensed under the MIT license found in the
+// LICENSE file in the root directory of this source tree.
 
 use oxc_ast::ast as oxc;
 use oxc_span::{GetSpan, Span};
@@ -1731,7 +1729,7 @@ impl<'a> ConvertCtx<'a> {
         let self_closing = el.closing_element.is_none();
         JSXElement {
             base: self.make_base_node(el.span),
-            opening_element: self.convert_jsx_opening_element(&el.opening_element),
+            opening_element: self.convert_jsx_opening_element(&el.opening_element, self_closing),
             closing_element: el
                 .closing_element
                 .as_ref()
@@ -1748,9 +1746,8 @@ impl<'a> ConvertCtx<'a> {
     fn convert_jsx_opening_element(
         &self,
         el: &oxc::JSXOpeningElement,
+        self_closing: bool,
     ) -> JSXOpeningElement {
-        // OXC doesn't store self_closing on the opening element directly.
-        // The caller (convert_jsx_element) sets self_closing based on closing_element.
         JSXOpeningElement {
             base: self.make_base_node(el.span),
             name: self.convert_jsx_element_name(&el.name),
@@ -1759,7 +1756,7 @@ impl<'a> ConvertCtx<'a> {
                 .iter()
                 .map(|a| self.convert_jsx_attribute_item(a))
                 .collect(),
-            self_closing: false, // Will be set by caller
+            self_closing,
             type_parameters: None,
         }
     }
