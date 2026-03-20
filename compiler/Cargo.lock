@@ -392,9 +392,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.17"
+version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
+checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "libc"
@@ -934,6 +934,7 @@ dependencies = [
  "react_compiler_inference",
  "react_compiler_lowering",
  "react_compiler_optimization",
+ "react_compiler_reactive_scopes",
  "react_compiler_ssa",
  "react_compiler_typeinference",
  "react_compiler_validation",
@@ -1033,6 +1034,15 @@ dependencies = [
  "react_compiler_diagnostics",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "react_compiler_reactive_scopes"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "react_compiler_diagnostics",
+ "react_compiler_hir",
 ]
 
 [[package]]
