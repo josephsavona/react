@@ -1,9 +1,9 @@
-// pub mod convert_ast;
+pub mod convert_ast;
 pub mod convert_scope;
 pub mod diagnostics;
 pub mod prefilter;
 
-// use convert_ast::convert_program;
+use convert_ast::convert_program;
 use convert_scope::convert_scope_info;
 use diagnostics::compile_result_to_diagnostics;
 use prefilter::has_react_like_functions;
@@ -27,7 +27,7 @@ pub struct LintResult {
 pub fn transform(
     program: &oxc_ast::ast::Program,
     semantic: &oxc_semantic::Semantic,
-    _source_text: &str,
+    source_text: &str,
     options: PluginOptions,
 ) -> TransformResult {
     // Prefilter: skip files without React-like functions (unless compilationMode == "all")
@@ -40,30 +40,20 @@ pub fn transform(
     }
 
     // Convert OXC AST to react_compiler_ast
-    // let file = convert_program(program, source_text);
+    let file = convert_program(program, source_text);
 
     // Convert OXC semantic to ScopeInfo
-    let _scope_info = convert_scope_info(semantic, program);
+    let scope_info = convert_scope_info(semantic, program);
 
-    // TODO: Run the compiler once convert_ast is implemented
-    // For now, return a success result with no changes
-    let result = CompileResult::Success {
-        ast: None,
-        events: vec![],
-        debug_logs: vec![],
-        ordered_log: vec![],
-    };
-    // let result = react_compiler::entrypoint::program::compile_program(file, scope_info, options);
+    // Run the compiler
+    let result =
+        react_compiler::entrypoint::program::compile_program(file, scope_info, options);
 
     // Extract diagnostics and events
     let diagnostics = compile_result_to_diagnostics(&result);
     let (program_json, events) = match result {
-        CompileResult::Success {
-            ast, events, ..
-        } => (ast, events),
-        CompileResult::Error {
-            events, ..
-        } => (None, events),
+        CompileResult::Success { ast, events, .. } => (ast, events),
+        CompileResult::Error { events, .. } => (None, events),
     };
 
     TransformResult {
