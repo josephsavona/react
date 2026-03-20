@@ -1,6 +1,6 @@
 # Plan: `react_compiler_oxc` — OXC Frontend for React Compiler
 
-**Current status:** Phase 1 (Foundation) and Phase 2 (Lint path) complete. Phase 3 (Transform/reverse converter) not started. All modules compile with 0 errors. Full pipeline wired up: OXC AST → react_compiler_ast → compile_program → diagnostics.
+**Current status:** Phases 1-3 complete. All modules compile with 0 errors. Full pipeline wired up: OXC AST → react_compiler_ast → compile_program → reverse convert → OXC AST. Phase 4 (Differential testing) not started.
 
 ## Context
 

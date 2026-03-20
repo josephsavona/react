@@ -4,21 +4,31 @@
 // LICENSE file in the root directory of this source tree.
 
 pub mod convert_ast;
+pub mod convert_ast_reverse;
 pub mod convert_scope;
 pub mod diagnostics;
 pub mod prefilter;
 
 use convert_ast::convert_program;
+use convert_ast_reverse::convert_program_to_oxc;
 use convert_scope::convert_scope_info;
 use diagnostics::compile_result_to_diagnostics;
 use prefilter::has_react_like_functions;
 use react_compiler::entrypoint::compile_result::{CompileResult, LoggerEvent};
 use react_compiler::entrypoint::plugin_options::PluginOptions;
 
-/// Result of compiling a program via the OXC frontend.
+/// Result of compiling a program via the OXC frontend (JSON AST output).
 pub struct TransformResult {
     /// The compiled program AST as JSON (None if no changes needed).
     pub program_json: Option<serde_json::Value>,
+    pub diagnostics: Vec<oxc_diagnostics::OxcDiagnostic>,
+    pub events: Vec<LoggerEvent>,
+}
+
+/// Result of compiling a program via the OXC frontend (OXC AST output).
+pub struct TransformOxcResult<'a> {
+    /// The compiled program as an OXC AST (None if no changes needed).
+    pub program: Option<oxc_ast::ast::Program<'a>>,
     pub diagnostics: Vec<oxc_diagnostics::OxcDiagnostic>,
     pub events: Vec<LoggerEvent>,
 }
@@ -28,14 +38,13 @@ pub struct LintResult {
     pub diagnostics: Vec<oxc_diagnostics::OxcDiagnostic>,
 }
 
-/// Primary transform API — accepts pre-parsed OXC AST + semantic.
+/// Primary transform API — returns compiled AST as JSON.
 pub fn transform(
     program: &oxc_ast::ast::Program,
     semantic: &oxc_semantic::Semantic,
     source_text: &str,
     options: PluginOptions,
 ) -> TransformResult {
-    // Prefilter: skip files without React-like functions (unless compilationMode == "all")
     if options.compilation_mode != "all" && !has_react_like_functions(program) {
         return TransformResult {
             program_json: None,
@@ -44,17 +53,11 @@ pub fn transform(
         };
     }
 
-    // Convert OXC AST to react_compiler_ast
     let file = convert_program(program, source_text);
-
-    // Convert OXC semantic to ScopeInfo
     let scope_info = convert_scope_info(semantic, program);
-
-    // Run the compiler
     let result =
         react_compiler::entrypoint::program::compile_program(file, scope_info, options);
 
-    // Extract diagnostics and events
     let diagnostics = compile_result_to_diagnostics(&result);
     let (program_json, events) = match result {
         CompileResult::Success { ast, events, .. } => (ast, events),
@@ -65,6 +68,31 @@ pub fn transform(
         program_json,
         diagnostics,
         events,
+    }
+}
+
+/// Transform API with OXC AST output — converts compiled result back to OXC AST.
+///
+/// The `output_allocator` is used to allocate the output OXC AST nodes.
+/// It should be separate from the allocator used for the input AST.
+pub fn transform_to_oxc<'a>(
+    program: &oxc_ast::ast::Program,
+    semantic: &oxc_semantic::Semantic,
+    source_text: &str,
+    options: PluginOptions,
+    output_allocator: &'a oxc_allocator::Allocator,
+) -> TransformOxcResult<'a> {
+    let result = transform(program, semantic, source_text, options);
+
+    let oxc_program = result.program_json.and_then(|json| {
+        let file: react_compiler_ast::File = serde_json::from_value(json).ok()?;
+        Some(convert_program_to_oxc(&file, output_allocator))
+    });
+
+    TransformOxcResult {
+        program: oxc_program,
+        diagnostics: result.diagnostics,
+        events: result.events,
     }
 }
 
