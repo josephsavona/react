@@ -1,8 +1,8 @@
 # Status
 
-Overall: 1695/1717 passing (98.7%), 22 failures remaining.
+Overall: needs retest after rebase. All reactive passes ported through PruneHoistedContexts.
 
-## Transformation passes (all ported)
+## Transformation passes (all ported through reactive)
 
 HIR: complete (1653/1653)
 PruneMaybeThrows: complete (1720/1720, includes 2nd call)
@@ -35,12 +35,29 @@ BuildReactiveScopeTerminalsHIR: complete (1631/1631)
 FlattenReactiveLoopsHIR: complete (1631/1631)
 FlattenScopesWithHooksOrUseHIR: complete (1631/1631)
 PropagateScopeDependenciesHIR: partial (1624/1631, 7 failures)
+BuildReactiveFunction: complete
+AssertWellFormedBreakTargets: complete
+PruneUnusedLabels: complete
+AssertScopeInstructionsWithinScopes: complete
+PruneNonEscapingScopes: partial (1 failure)
+PruneNonReactiveDependencies: partial (23 failures)
+PruneUnusedScopes: complete
+MergeReactiveScopesThatInvalidateTogether: partial (6 failures)
+PruneAlwaysInvalidatingScopes: complete
+PropagateEarlyReturns: complete
+PruneUnusedLValues: complete
+PromoteUsedTemporaries: complete
+ExtractScopeDeclarationsFromDestructuring: partial (8 failures)
+StabilizeBlockIds: complete
+RenameVariables: partial (46 failures)
+PruneHoistedContexts: complete
+ValidatePreservedManualMemoization: complete
 
 ## Validation passes
 
-ValidateContextVariableLValues: complete (1652/1652)
-ValidateUseMemo: complete (1652/1652)
-ValidateHooksUsage: complete (1651/1651)
+ValidateContextVariableLValues: complete (1645/1645)
+ValidateUseMemo: complete (1645/1645)
+ValidateHooksUsage: complete (1644/1644)
 ValidateNoCapitalizedCalls: complete (3/3)
 ValidateLocalsNotReassignedAfterRender: complete (1644/1644)
 ValidateNoRefAccessInRender: complete (1644/1644)
@@ -51,14 +68,18 @@ ValidateNoJSXInTryStatement: complete (4/4)
 ValidateNoFreezingKnownMutableFunctions: complete (1644/1644)
 ValidateStaticComponents: complete (5/5)
 ValidateExhaustiveDependencies: partial (1643/1644, 1 failure)
-ValidatePreservedManualMemoization: complete (1622/1622)
+ValidatePreservedManualMemoization: complete
 
-## Remaining failure breakdown (22 total)
+## Remaining failure breakdown (needs retest)
 
+RenameVariables: 46 (temporary variable naming order differences)
+PruneNonReactiveDependencies: 23 (reactive identifier propagation edge cases)
 OutlineFunctions: 9 (outline_jsx stub)
+ExtractScopeDeclarationsFromDestructuring: 8 (destructuring pattern edge cases)
 PropagateScopeDependenciesHIR: 7 (hoistable property loads, scope terminal structure)
+MergeReactiveScopesThatInvalidateTogether: 6 (merge logic edge cases)
 MergeOverlappingReactiveScopesHIR: 3 (scope range edge cases)
-AssertScopeInstructionsWithinScopes: 2 (cascade from PSDH)
+PruneNonEscapingScopes: 1 (escaping analysis edge case)
 ValidateExhaustiveDependencies: 1
 
 # Logs
@@ -339,3 +360,15 @@ positives via correct StartMemoize/FinishMemoize scoping of dependency collectio
 Fixed PSDH inner function traversal for nested FunctionExpressions. Fixed
 AlignObjectMethodScopes scope range accumulation (HashMap for min/max).
 Overall: 1695/1717 passing (98.7%), 22 failures remaining.
+
+## 20260320-213806 Port all reactive passes after BuildReactiveFunction
+
+Ported 15 reactive passes + visitor infrastructure from TypeScript to Rust:
+- Visitor/transform traits (visitors.rs) with closure-based traversal
+- assertWellFormedBreakTargets, pruneUnusedLabels, assertScopeInstructionsWithinScopes
+- pruneNonEscapingScopes (1123 lines), pruneNonReactiveDependencies, pruneUnusedScopes
+- mergeReactiveScopesThatInvalidateTogether, pruneAlwaysInvalidatingScopes, propagateEarlyReturns
+- pruneUnusedLValues, promoteUsedTemporaries, extractScopeDeclarationsFromDestructuring
+- stabilizeBlockIds, renameVariables, pruneHoistedContexts
+Fixed RenameVariables value-level lvalue visiting and inner function traversal (154 failures fixed).
+Fixed PruneNonReactiveDependencies inner function context visiting (23 failures fixed).
