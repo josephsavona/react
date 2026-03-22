@@ -1,6 +1,6 @@
 # Status
 
-Overall: needs retest after rebase. All reactive passes ported through PruneHoistedContexts.
+Overall: All passes ported including CodegenReactiveFunction. 1677/1717 passing (97.7%).
 
 ## Transformation passes (all ported through reactive)
 
@@ -393,3 +393,17 @@ Ported 15 reactive passes + visitor infrastructure from TypeScript to Rust:
 - stabilizeBlockIds, renameVariables, pruneHoistedContexts
 Fixed RenameVariables value-level lvalue visiting and inner function traversal (154 failures fixed).
 Fixed PruneNonReactiveDependencies inner function context visiting (23 failures fixed).
+
+## 20260322-022800 Port CodegenReactiveFunction — final pipeline pass
+
+Ported CodegenReactiveFunction.ts (~2500 lines TS → ~3100 lines Rust) as the terminal
+codegen pass. Converts ReactiveFunction tree back into Babel-compatible AST with
+memoization (useMemoCache) wired in.
+- Created codegen_reactive_function.rs in react_compiler_reactive_scopes crate
+- Wired into pipeline.rs, replacing zeroed-out placeholder with actual codegen call
+- All instruction value kinds, terminals, reactive scopes, JSX, patterns handled
+- Known gaps: TypeCastExpression type stripping, UnsupportedNode placeholder,
+  Fast Refresh/HookGuards/InstrumentForget skipped (config not yet ported)
+- Review: fixed panic→Result in get_instruction_value, removed extra
+  prune_hoisted_contexts from inner function codegen (TS divergence)
+Overall: 1677/1717 passing (97.7%), 40 failures (pre-existing, no regression).
