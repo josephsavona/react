@@ -718,7 +718,7 @@ fn compute_blank_line_positions(
             break;
         }
         // Check the source text before this item for comments followed by blank lines
-        let before = &source_text[..lo_u];
+        let Some(before) = source_text.get(..lo_u) else { break; };
         if has_blank_line(before) && (before.contains("//") || before.contains("/*")) {
             // There are comments and blank lines before this item.
             // Check if the blank line is between the comments and this item
@@ -755,7 +755,7 @@ fn compute_blank_line_positions(
         // Check the text between the two items for blank lines.
         // Babel's generator preserves blank lines from the original source
         // between consecutive top-level items.
-        let between = &source_text[prev_hi_u..curr_lo_u];
+        let Some(between) = source_text.get(prev_hi_u..curr_lo_u) else { continue; };
         if !has_blank_line(between) {
             continue;
         }
@@ -1269,5 +1269,39 @@ pub fn lint_source(source_text: &str, options: PluginOptions) -> LintResult {
         Err(_) => LintResult {
             diagnostics: vec![],
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Build a minimal ModuleItem whose span is exactly (lo, hi).
+    /// EmptyStmt is the simplest node that carries a span directly.
+    fn stmt_at(lo: u32, hi: u32) -> swc_ecma_ast::ModuleItem {
+        swc_ecma_ast::ModuleItem::Stmt(swc_ecma_ast::Stmt::Empty(swc_ecma_ast::EmptyStmt {
+            span: swc_common::Span::new(swc_common::BytePos(lo), swc_common::BytePos(hi)),
+        }))
+    }
+
+    // '═' is U+2550: 3 UTF-8 bytes, 1 UTF-16 code unit.
+    // A BytePos derived from a UTF-16 offset instead of a byte offset lands
+    // mid-character for any file containing these glyphs.
+
+    /// First-item check: BytePos(2) → lo_u = 1, which is the second byte of '═'.
+    /// source_text[..1] hits a non-char-boundary → panic before the fix.
+    #[test]
+    fn blank_line_positions_first_item_mid_char_does_not_panic() {
+        let source = "═══\n\n";
+        let _ = compute_blank_line_positions(&[stmt_at(2, 3)], source);
+    }
+
+    /// Between-items check: prev_hi_u = 1, curr_lo_u = 2 → source_text[1..2].
+    /// BytePos(1) safely breaks out of the first-item check (lo_u == 0).
+    /// The between-items slice then lands mid-'═' → panic before the fix.
+    #[test]
+    fn blank_line_positions_between_items_mid_char_does_not_panic() {
+        let source = "═══\n\n";
+        let _ = compute_blank_line_positions(&[stmt_at(1, 2), stmt_at(3, 4)], source);
     }
 }

@@ -607,3 +607,65 @@ fn reverse_convert_multiple_statement_types() {
     let swc_module = convert_program_to_swc(&file);
     assert_eq!(swc_module.module.body.len(), 5);
 }
+
+// ── Non-ASCII source text tests ─────────────────────────────────────────────
+// '═' is U+2550 (BOX DRAWINGS DOUBLE HORIZONTAL): 3 UTF-8 bytes, 1 UTF-16 unit.
+// compute_blank_line_positions and extract_source_comments slice source_text by
+// SWC BytePos values. When generated nodes accidentally carry UTF-16 offsets instead
+// of byte offsets, those slices land mid-character and panic.
+
+#[test]
+fn non_ascii_section_dividers_do_not_panic() {
+    let with_non_ascii = r#"
+// ════════════════════════════════════════
+// Counter component
+// ════════════════════════════════════════
+
+import { useState } from 'react';
+
+export function Counter({ initialCount }) {
+    const [count, setCount] = useState(initialCount);
+    const doubled = count * 2;
+    return (
+        <div>
+            <p>{count}</p>
+            <p>{doubled}</p>
+            <button onClick={() => setCount(count + 1)}>+</button>
+        </div>
+    );
+}
+"#;
+
+    let with_ascii = r#"
+// ========================================
+// Counter component
+// ========================================
+
+import { useState } from 'react';
+
+export function Counter({ initialCount }) {
+    const [count, setCount] = useState(initialCount);
+    const doubled = count * 2;
+    return (
+        <div>
+            <p>{count}</p>
+            <p>{doubled}</p>
+            <button onClick={() => setCount(count + 1)}>+</button>
+        </div>
+    );
+}
+"#;
+
+    // ASCII variant must always succeed.
+    let r = transform_source(with_ascii, default_options());
+    assert!(r.module.is_some(), "ASCII '=' variant: transform returned no module");
+
+    // Non-ASCII variant: panics before the fix due to mid-char byte slicing in
+    // compute_blank_line_positions / extract_source_comments.
+    let r = transform_source(with_non_ascii, default_options());
+    assert!(
+        r.module.is_some(),
+        "non-ASCII '═' variant: byte-boundary panic in source_text slicing"
+    );
+}
+

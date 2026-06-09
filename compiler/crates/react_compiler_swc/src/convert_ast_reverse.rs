@@ -187,10 +187,7 @@ impl ReverseCtx {
         // SWC BytePos is 1-based
         let start_idx = start.saturating_sub(1);
         let end_idx = end.saturating_sub(1);
-        if start_idx >= source.len() || end_idx > source.len() || start_idx >= end_idx {
-            return None;
-        }
-        let text = &source[start_idx..end_idx];
+        let text = source.get(start_idx..end_idx)?;
         self.parse_ts_stmt(text, base)
     }
 
@@ -2380,8 +2377,7 @@ impl ReverseCtx {
                 ) {
                     let start_idx = (start as usize).saturating_sub(1);
                     let end_idx = (end as usize).saturating_sub(1);
-                    if start_idx < source.len() && end_idx <= source.len() && start_idx < end_idx {
-                        let text = &source[start_idx..end_idx];
+                    if let Some(text) = source.get(start_idx..end_idx) {
                         // Parse the type using SWC
                         let wrapper = format!("type __T = {};", text);
                         let cm = swc_common::sync::Lrc::new(swc_common::SourceMap::default());
@@ -2441,8 +2437,7 @@ impl ReverseCtx {
                 ) {
                     let start_idx = (start as usize).saturating_sub(1);
                     let end_idx = (end as usize).saturating_sub(1);
-                    if start_idx < source.len() && end_idx <= source.len() && start_idx < end_idx {
-                        let text = &source[start_idx..end_idx];
+                    if let Some(text) = source.get(start_idx..end_idx) {
                         // For Flow types, we can use TS parser as many simple types
                         // have the same syntax
                         let wrapper = format!("type __T = {};", text);
